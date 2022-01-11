@@ -1,0 +1,3 @@
+We only include tests here that don't need an actual Zeek Agent to
+talk to. Integration tests involving both agents and framework are
+part of the Zeek Agent source distribution.

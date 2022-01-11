@@ -1,0 +1,8 @@
+[package]
+version = 0.2-dev
+script_dir = scripts
+test_command = cd tests && btest
+summary = Framework collecting Zeek Agent information from endpoints
+description =
+depends =
+	zeek >=4.0.0
