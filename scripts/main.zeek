@@ -207,12 +207,14 @@ event send_zeek_hello()
 	schedule hello_interval { send_zeek_hello() };
 	}
 
-event zeek_init()
+event zeek_init() &priority=100
 	{
 	zeek_instance = unique_id("zeek_");
-
  	Log::create_stream(LOG, [$columns=Info, $path="zeek-agent", $policy=log_policy]);
+	}
 
+event zeek_init() &priority=-10
+	{
 	Broker::listen();
 	Broker::subscribe("/zeek-agent/response/all");
 	Broker::subscribe(fmt("/zeek-agent/response/%s/", zeek_instance));
