@@ -33,31 +33,35 @@ export {
 	## query_id: the query's ID as returned by ``query()``
 	global cancel: function(query_id: string);
 
+	global host_id: function(ctx: Context) : string;
+	global hostname: function(ctx: Context) :string;
+	global log_column_map: function(rec: any, strip_prefix: string) : table[string] of string;
+
 	## The logging stream identifier for ``zeek-agent.log``.
 	redef enum Log::ID += { LOG };
 
 	## Type defining the columns of ``zeek-agent.log``.
 	type Info: record {
-		ts: time		&log; 		##< Zeek's time when log entry was recorded
-		type_: string  		&log; 		##< type of update
-		hostname: string	&log &optional; ##< agent's hostname
-		address: string		&log &optional; ##< agent's address
-		version: int            &log &optional; ##< version of Zeek Agent running on host
-		uptime: interval	&log &optional; ##< uptime of host
-		platform: string	&log &optional; ##< platform of host
-		os_name: string 	&log &optional; ##< name of OS on host
-		agent_id: string	&log;		##< agent's UUID
+		ts: time		&log;	##< Zeek's time when log entry was recorded
+		type_: string  		&log;	##< type of update
+		hid: string		&log;	##< unique ID of host
+		hostname: string	&log &optional;	##< agent's hostname
+		address: string		&log &optional;	##< agent's address
+		version: int            &log &optional;	##< version of Zeek Agent running on host
+		uptime: interval	&log &optional;	##< uptime of host
+		platform: string	&log &optional;	##< platform of host
+		os_name: string 	&log &optional;	##< name of OS on host
 	};
 
 	## A default logging policy hook for the ``zeek-agent.log`` stream.
 	global log_policy: Log::PolicyHook;
 
 	## Expiration interval for an agent's state after not hearing from it
-	## anymore.
-	option agent_timeout = 30secs;
+	## anymore. (Note that this should be longer than the agent's hello interval.)
+	option agent_timeout = 10mins;
 
 	## Interval to broadcast ``hello`` events to all connected agents.
-	option hello_interval = 5secs;
+	option hello_interval = 60secs;
 }
 
 # Unique ID for the current Zeek process.
@@ -67,6 +71,7 @@ global zeek_instance: string;
 type Agent: record {
 	last_seen: time;
 	hello: ZeekAgentAPI::HelloV1;
+	hello_id: string;
 	};
 
 # Callback for an agent's state expiring.
@@ -96,7 +101,7 @@ function log_update(agent_id: string, type_: string)
 	local log : Info = [
 		$ts = network_time(),
 		$type_ = type_,
-		$agent_id = agent_id
+		$hid = agent_id
 	];
 
 	local hello = agent$hello;
@@ -125,7 +130,6 @@ function log_update(agent_id: string, type_: string)
 function agent_expired(t: table[string] of Agent, agent_id: string) : interval
 	{
 	log_update(agent_id, "offline");
-	# TODO
 	return 0secs;
 	}
 
@@ -197,6 +201,32 @@ function query(query: Query, scope: Scope, target: string) : string
 	return query_id;
 	}
 
+function hostname(ctx: Context) : string
+	{
+	if ( ctx$agent_id !in agents )
+		return "<unknown>";
+
+	local agent = agents[ctx$agent_id];
+
+	if ( agent$hello$hostname != "" )
+		return agent$hello$hostname;
+
+	if ( agent$hello$address != "" )
+		return agent$hello$address;
+
+	return "<unknown>";
+	}
+
+function log_column_map(rec: any, strip_prefix: string) : table[string] of string
+	{
+	local map: table[string] of string;
+
+	for ( fname in record_fields(rec) )
+		map[strip_prefix + fname] = fname;
+
+	return map;
+	}
+
 ### Event handlers
 
 event send_zeek_hello()
@@ -241,20 +271,23 @@ event ZeekAgentAPI::agent_hello_v1(ctx: ZeekAgent::Context, columns: ZeekAgentAP
 	if ( agent_id in agents )
 		{
 		local agent = agents[agent_id];
-		local old_instance_id = agent$hello$instance_id;
+		local old_hello_id = agent$hello_id;
 		agent$last_seen = network_time();
 		agent$hello = columns;
+		agent$hello_id = ctx$query_id;
 
-		if ( columns$instance_id == old_instance_id )
+		if ( agent$hello_id == old_hello_id )
 			# No change, nothing to do (but table expiration will have been bumped).
 			log_update(agent_id, "update");
 		else {
-			log_update(agent_id, "restart");
+			# When the query ID changes, the agent reconnected and
+			# needs a new copy of its query state.
+			log_update(agent_id, "reconnect");
 			send_all_queries_to_agent(agent_id);
 			}
 		}
 	else {
-		agents[agent_id] = [$last_seen=network_time(), $hello=columns];
+		agents[agent_id] = [$last_seen=network_time(), $hello_id=ctx$query_id, $hello=columns];
 		log_update(agent_id, "join");
 		send_all_queries_to_agent(agent_id);
 		return;

@@ -36,6 +36,9 @@ export {
 		## Local time on the agent system when result was sent.
 		host_time: time;
 
+		## ID of query triggering this response, if any.
+		query_id: string &optional;
+
 		## Type of change that the result is reflecting.
 		change: ChangeType &optional;
 

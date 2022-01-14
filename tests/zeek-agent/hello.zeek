@@ -14,7 +14,7 @@ global n = 0;
 event send_hello()
 	{
 	# We simulate an agent here by faking a corresponding "hello" event.
-	local ctx: ZeekAgent::Context = [$agent_id="fake_agent", $host_time=network_time()];
+	local ctx: ZeekAgent::Context = [$agent_id="fake_agent", $query_id="fake_query", $host_time=network_time()];
 
 	if ( ++n < 3 )
 		{
