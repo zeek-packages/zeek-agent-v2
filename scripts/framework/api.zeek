@@ -25,6 +25,7 @@ export {
 		agent_version: int &optional;
 		broker: string &optional;
 		uptime: int &optional;
+		tables: string &optional;
 	};
 
 	## Regularly broadcasted by all connected agents.

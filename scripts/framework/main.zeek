@@ -33,9 +33,20 @@ export {
 	## query_id: the query's ID as returned by ``query()``
 	global cancel: function(query_id: string);
 
+	## TODO: Add docs.
 	global host_id: function(ctx: Context) : string;
+
+	## TODO: Add docs.
 	global hostname: function(ctx: Context) :string;
+
+	## TODO: Add docs.
+	global change_type: function(ctx: Context): string;
+
+	## TODO: Add docs.
 	global log_column_map: function(rec: any, strip_prefix: string) : table[string] of string;
+
+	## TODO: Add docs.
+	global supported_tables: function(hid: string) : set[string];
 
 	## The logging stream identifier for ``zeek-agent.log``.
 	redef enum Log::ID += { LOG };
@@ -217,6 +228,19 @@ function hostname(ctx: Context) : string
 	return "<unknown>";
 	}
 
+function change_type(ctx: Context) : string
+	{
+	if ( ! ctx?$change )
+		return "";
+
+	switch ( ctx$change ) {
+		case ZeekAgent::Add: return "new";
+		case ZeekAgent::Delete: return "gone";
+		}
+
+	return "should-not-happen";
+	}
+
 function log_column_map(rec: any, strip_prefix: string) : table[string] of string
 	{
 	local map: table[string] of string;
@@ -225,6 +249,19 @@ function log_column_map(rec: any, strip_prefix: string) : table[string] of strin
 		map[strip_prefix + fname] = fname;
 
 	return map;
+	}
+
+function supported_tables(agent_id: string) : set[string]
+	{
+	if ( agent_id !in agents )
+		return set();
+
+	local tables = split_string(agents[agent_id]$hello$tables, /,/);
+	local result: set[string];
+	for ( i in tables )
+		add result[tables[i]];
+
+	return result;
 	}
 
 ### Event handlers
