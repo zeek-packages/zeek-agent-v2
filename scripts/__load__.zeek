@@ -1,2 +1,3 @@
-@load ./framework/main
-@load ./framework/api
+@load ./framework
+@load ./framework
+@load ./table
