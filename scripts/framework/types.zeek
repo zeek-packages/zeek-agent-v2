@@ -17,7 +17,7 @@ export {
 		## Return only rows added since the previous result. (This is
 		## most useful for evented tables, hence the name).
 		Events,
-		};
+	};
 
 	## For queries using ``Subscription::Differences``, indicates the type of change to a row.
 	type ChangeType: enum {
@@ -73,5 +73,5 @@ export {
 
 		## Send query to an individual agent only.
 		Host
-		};
+	};
 }
