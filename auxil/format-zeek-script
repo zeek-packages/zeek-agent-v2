@@ -1,6 +1,6 @@
 #! /bin/sh
 
-command -v zeek-script &>/dev/null || exit 1
+command -v zeek-script &>/dev/null || exit 0
 
 for i in $@; do
     zeek-script format ${i} >${i}.tmp && mv -f ${i}.tmp ${i}
