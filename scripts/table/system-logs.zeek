@@ -42,5 +42,5 @@ event zeek_init() {
 	Log::remove_default_filter(LOG);
 	Log::add_filter(LOG, [$name = "default", $path = "zeek-agent-system-logs", $field_name_map = field_name_map]);
 
-	ZeekAgent::query([$sql_stmt = "SELECT * FROM system_logs_events", $event_ = query_result, $schedule_ = query_interval, $subscription = ZeekAgent::Differences]);
+	ZeekAgent::query([$sql_stmt = "SELECT * FROM system_logs_events", $event_ = query_result, $schedule_ = query_interval, $subscription = ZeekAgent::Events]);
 }
