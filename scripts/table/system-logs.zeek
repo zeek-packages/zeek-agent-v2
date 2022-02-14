@@ -15,11 +15,11 @@ export {
 		level: string &optional &log; ##< severity level
 		message: string &optional &log; ##< log message
 	};
+
 	type Info: record {
 		t: time &log; ##< time received
 		hid: string &log; ##< unique ID of originater host
 		host: string &log; ##< name of originator
-		change: string &optional &log; ##< type of change
 		columns: Columns &log;
 	};
 
@@ -29,10 +29,6 @@ export {
 
 event ZeekAgent_SystemLogs::query_result(ctx: ZeekAgent::Context, columns: Columns) {
 	local info = Info($t = network_time(), $hid = ctx$agent_id, $host = ZeekAgent::hostname(ctx), $columns = columns);
-
-	if ( ctx?$change )
-		info$change = ZeekAgent::change_type(ctx);
-
 	Log::write(LOG, info);
 }
 
