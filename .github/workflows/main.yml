@@ -1,0 +1,45 @@
+name: CI pipeline
+
+on: push
+
+env:
+  ZEEK_LTS: -lts
+  ZEEK_VERSION: 4.0.4-0
+
+jobs:
+  ubuntu_latest:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Prepare
+        run: |
+          export DEBIAN_FRONTEND=noninteractive
+          sudo apt-get install -y curl ca-certificates
+          sudo pip3 install btest zkg pre-commit
+
+      - name: Install Zeek
+        run: |
+          (cd /tmp && curl -L -O https://download.zeek.org/binary-packages/xUbuntu_20.04/amd64/zeek${ZEEK_LTS}-core_${ZEEK_VERSION}_amd64.deb)
+          sudo apt install -y /tmp/zeek${ZEEK_LTS}-core_${ZEEK_VERSION}_amd64.deb
+          echo "/opt/zeek/bin:$PATH" >> $GITHUB_PATH
+
+      - name: Checkout repository
+        uses: actions/checkout@v2
+        with:
+          submodules: recursive
+
+      - name: Test
+        run: |
+          make test
+
+      - name: Check code
+        run: |
+          pre-commit run -a --show-diff-on-failure
+
+      - uses: actions/upload-artifact@v2
+        if: failure()
+        with:
+          name: Test output
+          path: |
+            tests/.tmp
+            zeek-agent/tests/.tmp
