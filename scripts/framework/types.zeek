@@ -64,6 +64,16 @@ export {
 
 		## Custom cookie string that will be included with results.
 		cookie: string &optional;
+
+		## Specify a set of tables that must be available for this
+		## query to execute. If an agent doesn't have them all, it will
+		## (silently) ignore the query.
+		requires_tables: set[string] &default=set();
+
+		## Specify a set of tables that must *not* be available for this
+		## query to execute. If an agent does have any of them, it will
+		## (silently) ignore the query.
+		if_missing_tables: set[string] &default=set();
 	};
 
 	## Scope that queries apply to.
