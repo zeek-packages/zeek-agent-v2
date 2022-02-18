@@ -7,7 +7,7 @@ env:
   ZEEK_VERSION: 4.0.4-0
 
 jobs:
-  ubuntu_latest:
+  test_ubuntu_latest:
     runs-on: ubuntu-latest
 
     steps:
@@ -43,3 +43,36 @@ jobs:
           path: |
             tests/.tmp
             zeek-agent/tests/.tmp
+
+  publish_release:
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: [test_ubuntu_latest]
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+        with:
+          submodules: recursive
+
+      - name: Build tarball
+        run: |
+          mkdir -p artifacts
+          export base="zeek-agent-package-$(echo ${{ github.ref_name }} | sed 's/^v//')"; git archive --format tar.gz --output "artifacts/${base}.tar.gz" --prefix "${base}" ${{ github.ref_name }}
+
+      - name: Prepare release message
+        run: |
+          cat CHANGES | awk '/^[0-9]+\./{ n++; next; } n < 2 { print }' >${{ runner.temp }}/release-msg
+
+      - name: Display artifacts
+        run: ls -al artifacts/*
+
+      - name: Upload artifacts
+        uses: softprops/action-gh-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          draft: false
+          prerelease: false
+          body_path: ${{ runner.temp }}/release-msg
+          files: |
+            artifacts/*.tar.gz
