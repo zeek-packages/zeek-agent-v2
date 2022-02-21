@@ -1,0 +1,78 @@
+name: CI pipeline
+
+on: push
+
+env:
+  ZEEK_LTS: -lts
+  ZEEK_VERSION: 4.0.4-0
+
+jobs:
+  test_ubuntu_latest:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Prepare
+        run: |
+          export DEBIAN_FRONTEND=noninteractive
+          sudo apt-get install -y curl ca-certificates
+          sudo pip3 install btest zkg pre-commit
+
+      - name: Install Zeek
+        run: |
+          (cd /tmp && curl -L -O https://download.zeek.org/binary-packages/xUbuntu_20.04/amd64/zeek${ZEEK_LTS}-core_${ZEEK_VERSION}_amd64.deb)
+          sudo apt install -y /tmp/zeek${ZEEK_LTS}-core_${ZEEK_VERSION}_amd64.deb
+          echo "/opt/zeek/bin:$PATH" >> $GITHUB_PATH
+
+      - name: Checkout repository
+        uses: actions/checkout@v2
+        with:
+          submodules: recursive
+
+      - name: Test
+        run: |
+          make test
+
+      - name: Check code
+        run: |
+          pre-commit run -a --show-diff-on-failure
+
+      - uses: actions/upload-artifact@v2
+        if: failure()
+        with:
+          name: Test output
+          path: |
+            tests/.tmp
+            zeek-agent/tests/.tmp
+
+  publish_release:
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: [test_ubuntu_latest]
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+        with:
+          submodules: recursive
+
+      - name: Build tarball
+        run: |
+          mkdir -p artifacts
+          export base="zeek-agent-package-$(echo ${{ github.ref_name }} | sed 's/^v//')"; git archive --format tar.gz --output "artifacts/${base}.tar.gz" --prefix "${base}" ${{ github.ref_name }}
+
+      - name: Prepare release message
+        run: |
+          cat CHANGES | awk '/^[0-9]+\./{ n++; next; } n < 2 { print }' >${{ runner.temp }}/release-msg
+
+      - name: Display artifacts
+        run: ls -al artifacts/*
+
+      - name: Upload artifacts
+        uses: softprops/action-gh-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          draft: false
+          prerelease: false
+          body_path: ${{ runner.temp }}/release-msg
+          files: |
+            artifacts/*.tar.gz

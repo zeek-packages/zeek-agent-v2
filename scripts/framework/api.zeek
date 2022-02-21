@@ -12,7 +12,7 @@ export {
 	##
 	## The record's field correspond directly to the agents' `zeek_agent`
 	## table.
-	type HelloV1: record {
+	type AgentHelloV1: record {
 		agent_id: string;
 		instance_id: string;
 		hostname: string &optional;
@@ -28,8 +28,15 @@ export {
 		tables: string &optional;
 	};
 
+	## Zeek-side ``hello`` record broadcasted regularly by Zeek to all clients.
+	type ZeekHelloV1: record {
+		version_string: string; ##< Zeek version string
+		version_number: count; ##< Numerical Zeek version
+		package_version: string; ##< ZeekAgent package version string if known, or empty otherwise
+	};
+
 	## Regularly broadcasted by all connected agents.
-	global agent_hello_v1: event(ctx: ZeekAgent::Context, columns: HelloV1);
+	global agent_hello_v1: event(ctx: ZeekAgent::Context, columns: AgentHelloV1);
 
 	## Broadcasted by agents on regular shutdown.
 	global agent_shutdown_v1: event(ctx: ZeekAgent::Context);
@@ -38,7 +45,7 @@ export {
 	global agent_error_v1: event(ctx: ZeekAgent::Context, msg: string);
 
 	## Regularly broadcasted by Zeek.
-	global zeek_hello_v1: event(zeek_instance: string);
+	global zeek_hello_v1: event(zeek_instance: string, info: ZeekHelloV1);
 
 	## Broadcasted by Zeek on regular shutdown.
 	global zeek_shutdown_v1: event(zeek_instance: string);
