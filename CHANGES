@@ -1,3 +1,11 @@
-1.0.0 | 2022-02-15 15:15:16 +0100
+2.0.0 | 2022-02-21 15:06:23 +0100
 
-  * Release 1.0.0.
+  * Ensure that we are always listening on the default Broker port.
+
+  * Extend query API to allow specifying tables that must/must not be present.
+
+  * Publish GitHub releases for the package on tag creation.
+
+  * Provide version of Zeek and package to agents.
+
+  * Add CI running tests.

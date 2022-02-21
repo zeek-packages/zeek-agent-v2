@@ -75,6 +75,25 @@ export {
 
 	## Interval to broadcast ``hello`` events to all connected agents.
 	option hello_interval = 60 secs;
+
+	## If non-zero and different from the Broker default port, listen this
+	## port for incoming Broker connections.
+	##
+	## Note: Our default here is the same as the Broker default. However,
+	## ZeekControl changes the Broker default based on node type. To still
+	## have a well-known port for agents, we open the port defined here
+	## when the Broker default has been changed. You may also set this to
+	## something entirely different if you want another port for the
+	## agents alltogether.
+	option listen_port = 9999/tcp;
+
+	## Default address on which to listen; empty for any interface, which
+	## is the default.
+	option listen_address = Broker::default_listen_address;
+
+	## Default interval to retry listening on a port if it's currently in
+	## use already.
+	option listen_retry = Broker::default_listen_retry;
 }
 
 # Unique ID for the current Zeek process.
@@ -289,7 +308,9 @@ event zeek_init() &priority=100 {
 }
 
 event zeek_init() &priority=-10 {
-	Broker::listen();
+	if ( listen_port != 0/tcp && listen_port != Broker::default_port )
+		Broker::listen(listen_address, listen_port, listen_retry);
+
 	Broker::subscribe("/zeek-agent/response/all");
 	Broker::subscribe(fmt("/zeek-agent/response/%s/", zeek_instance));
 
