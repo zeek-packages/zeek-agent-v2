@@ -62,6 +62,7 @@ jobs:
       - name: Prepare release message
         run: |
           cat CHANGES | awk '/^[0-9]+\./{ n++; next; } n < 2 { print }' >${{ runner.temp }}/release-msg
+          echo "release_name=$(echo ${{ github.ref_name }} | sed 's/^v//')" >> $GITHUB_ENV
 
       - name: Display artifacts
         run: ls -al artifacts/*
@@ -73,6 +74,7 @@ jobs:
         with:
           draft: false
           prerelease: false
+          name: ${{ env.release_name }}
           body_path: ${{ runner.temp }}/release-msg
           files: |
             artifacts/*.tar.gz
