@@ -10,7 +10,7 @@ export {
 
 	## Log messages recorded by the operating systems.
 	type Columns: record {
-		time_: int &optional &log; ##< timestamp as seconds since epoch
+		time_: time &optional &log; ##< timestamp as seconds since epoch
 		process: string &optional &log; ##< process name
 		level: string &optional &log; ##< severity level
 		message: string &optional &log; ##< log message

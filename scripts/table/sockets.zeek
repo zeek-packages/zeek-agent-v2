@@ -10,14 +10,14 @@ export {
 
 	## Open network sockets.
 	type Columns: record {
-		pid: int &optional &log; ##< ID of process holding socket
+		pid: count &optional &log; ##< ID of process holding socket
 		process: string &optional &log; ##< name of process holding socket
 		family: string &optional &log; ##< `IPv4` or `IPv6`
-		protocol: int &optional &log; ##< transport protocol
-		local_port: int &optional &log; ##< local port number
-		remote_port: int &optional &log; ##< remote port number
-		local_addr: string &optional &log; ##< local IP address
-		remote_addr: string &optional &log; ##< remote IP address
+		protocol: count &optional &log; ##< transport protocol
+		local_port: count &optional &log; ##< local port number
+		remote_port: count &optional &log; ##< remote port number
+		local_addr: addr &optional &log; ##< local IP address
+		remote_addr: addr &optional &log; ##< remote IP address
 		state: string &optional &log; ##< state of socket
 	};
 

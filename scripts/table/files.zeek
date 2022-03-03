@@ -16,11 +16,11 @@ export {
 	type Columns: record {
 		path: string &optional &log; ##<  full path
 		type_: string &optional &log; ##<  textual description of the path's type (e.g., `file`, `dir`, `socket`)
-		uid: int &optional &log; ##<  ID of user owning file
-		gid: int &optional &log; ##<  ID if group owning file
+		uid: count &optional &log; ##<  ID of user owning file
+		gid: count &optional &log; ##<  ID if group owning file
 		mode: string &optional &log; ##<  octal permission mode
-		mtime: int &optional &log; ##<  time of last modification as seconds since epoch
-		size: int &optional &log; ##<  file size in bytes
+		mtime: time &optional &log; ##<  time of last modification as seconds since epoch
+		size: count &optional &log; ##<  file size in bytes
 	};
 
 	type Info: record {

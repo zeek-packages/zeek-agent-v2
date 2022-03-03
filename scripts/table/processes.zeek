@@ -10,12 +10,12 @@ export {
 
 	type Columns: record {
 		name: string &optional &log;
-		pid: int &optional &log;
-		uid: int &optional &log;
-		gid: int &optional &log;
-		ppid: int &optional &log;
+		pid: count &optional &log;
+		uid: count &optional &log;
+		gid: count &optional &log;
+		ppid: count &optional &log;
 		priority: int &optional &log;
-		startup: int &optional &log;
+		startup: interval &optional &log;
 	};
 
 	type Info: record {

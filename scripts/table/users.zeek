@@ -12,10 +12,10 @@ export {
 	type Columns: record {
 		name: string &optional &log; ##< short name
 		full_name: string &optional &log; ##< full name
-		is_admin: int &optional &log; ##< 1 if user has adminstrative privileges
-		is_system: int &optional &log; ##< 1 if user correponds to OS service
-		uid: int &optional &log; ##< user ID
-		gid: int &optional &log; ##< group ID
+		is_admin: bool &optional &log; ##< 1 if user has adminstrative privileges
+		is_system: bool &optional &log; ##< 1 if user correponds to OS service
+		uid: count &optional &log; ##< user ID
+		gid: count &optional &log; ##< group ID
 		home: string &optional &log; ##< path to home directory
 		shell: string &optional &log; ##< path to default shell
 		email: string &optional &log; ##< email address

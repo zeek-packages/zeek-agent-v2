@@ -59,7 +59,7 @@ export {
 		type_: string &log; ##< type of update
 		hid: string &log; ##< unique ID of host
 		hostname: string &log &optional; ##< agent's hostname
-		address: string &log &optional; ##< agent's address
+		addresses: set[addr] &log &optional; ##< agent's primary addresses
 		version: int &log &optional; ##< version of Zeek Agent running on host
 		uptime: interval &log &optional; ##< uptime of host
 		platform: string &log &optional; ##< platform of host
@@ -138,14 +138,14 @@ function log_update(agent_id: string, type_: string) {
 	if ( hello?$hostname )
 		log$hostname = hello$hostname;
 
-	if ( hello?$address )
-		log$address = hello$address;
+	if ( hello?$addresses )
+		log$addresses = hello$addresses;
 
 	if ( hello?$agent_version )
 		log$version = hello$agent_version;
 
 	if ( hello?$uptime )
-		log$uptime = double_to_interval(hello$uptime);
+		log$uptime = hello$uptime;
 
 	if ( hello?$platform )
 		log$platform = hello$platform;
@@ -234,11 +234,13 @@ function hostname(ctx: Context): string {
 
 	local agent = agents[ctx$agent_id];
 
-	if ( agent$hello$hostname != "" )
+	if ( agent$hello?$hostname && agent$hello$hostname != "" )
 		return agent$hello$hostname;
 
-	if ( agent$hello$address != "" )
-		return agent$hello$address;
+	if ( agent$hello?$addresses && |agent$hello$addresses| > 0 ) {
+		for ( a in agent$hello$addresses )
+			return fmt("%s", a);
+	}
 
 	return "<unknown>";
 }
@@ -265,16 +267,12 @@ function log_column_map(rec: any, strip_prefix: string): table[string] of string
 	return map;
 }
 
-function supported_tables(agent_id: string): set[string] {
-	if ( agent_id !in agents )
+function supported_tables(agent_id: string): set[string]
+{
+	if ( agent_id in agents )
+		return agents[agent_id]$hello$tables;
+	else
 		return set();
-
-	local tables = split_string(agents[agent_id]$hello$tables, /,/);
-	local result: set[string];
-	for ( i in tables )
-		add result[tables[i]];
-
-	return result;
 }
 
 ### Event handlers

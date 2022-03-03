@@ -16,16 +16,16 @@ export {
 		agent_id: string;
 		instance_id: string;
 		hostname: string &optional;
-		address: string &optional;
+		addresses: set[addr] &optional;
 		platform: string &optional;
 		os_name: string &optional;
 		kernel_name: string &optional;
 		kernel_version: string &optional;
 		kernel_arch: string &optional;
-		agent_version: int &optional;
+		agent_version: count &optional;
 		broker: string &optional;
-		uptime: int &optional;
-		tables: string &optional;
+		uptime: interval &optional;
+		tables: set[string] &optional;
 	};
 
 	## Zeek-side ``hello`` record broadcasted regularly by Zeek to all clients.
