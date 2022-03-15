@@ -51,7 +51,8 @@ export {
 	global zeek_shutdown_v1: event(zeek_instance: string);
 
 	## Sends query to agents.
-	global install_query_v1: event(zeek_instance: string, query_id: string, query: ZeekAgent::Query);
+	global install_query_v1: event(zeek_instance: string, query_id: string,
+	    query: ZeekAgent::Query);
 
 	## Cancels a previously sent query with agents.
 	global cancel_query_v1: event(zeek_instance: string, query_id: string);

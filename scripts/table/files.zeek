@@ -35,8 +35,13 @@ export {
 	global log_policy: Log::PolicyHook;
 }
 
-event ZeekAgent_Files::query_result(ctx: ZeekAgent::Context, columns: Columns) {
-	local info = Info($t = network_time(), $hid = ctx$agent_id, $host = ZeekAgent::hostname(ctx), $columns = columns);
+event ZeekAgent_Files::query_result(ctx: ZeekAgent::Context, columns: Columns)
+{
+	local info = Info(
+	    $t=network_time(),
+	    $hid=ctx$agent_id,
+	    $host=ZeekAgent::hostname(ctx),
+	    $columns=columns);
 
 	if ( ctx?$change )
 		info$change = ZeekAgent::change_type(ctx);
@@ -44,17 +49,25 @@ event ZeekAgent_Files::query_result(ctx: ZeekAgent::Context, columns: Columns) {
 	Log::write(LOG, info);
 }
 
-event zeek_init() {
+event zeek_init()
+{
 	if ( |paths_to_watch| == 0 )
 		return;
 
 	local field_name_map = ZeekAgent::log_column_map(Columns, "columns.");
-	Log::create_stream(LOG, [$columns = Info, $policy = log_policy]);
+	Log::create_stream(LOG, [$columns=Info, $policy=log_policy]);
 	Log::remove_default_filter(LOG);
-	Log::add_filter(LOG, [$name = "default", $path = "zeek-agent-files", $field_name_map = field_name_map]);
+	Log::add_filter(LOG, [
+	    $name="default",
+	    $path="zeek-agent-files",
+	    $field_name_map=field_name_map]);
 
 	for ( p in paths_to_watch ) {
 		local stmt = fmt("SELECT * FROM files_list(\"%s\")", p);
-		ZeekAgent::query([$sql_stmt = stmt, $event_ = query_result, $schedule_ = query_interval, $subscription = ZeekAgent::Differences]);
+		ZeekAgent::query([
+		    $sql_stmt=stmt,
+		    $event_=query_result,
+		    $schedule_=query_interval,
+		    $subscription=ZeekAgent::Differences]);
 	}
 }
