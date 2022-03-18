@@ -3,7 +3,7 @@ module ZeekAgent_AuthorizedKeys;
 export {
 	## Paths to find `authorized_keys` files in.
 	const paths_to_watch = set("/home/*/.ssh/authorized_keys",
-	    "/Users/*/.ssh/authorized_keys", "/Users/robin/src/iTerm2-git/submodules/libssh2/tests/openssh_server/authorized_keys") &redef;
+	    "/Users/*/.ssh/authorized_keys") &redef;
 
 	## Query frequency.
 	option query_interval = 30 secs;

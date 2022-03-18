@@ -34,20 +34,35 @@ export {
 	## query_id: the query's ID as returned by ``query()``
 	global cancel: function(query_id: string);
 
-	## TODO: Add docs.
+	## Given the query context from an incoming agent result, returns the
+	## unique ID of the originating host system.
 	global host_id: function(ctx: Context): string;
 
-	## TODO: Add docs.
+	## Given the query context from an incoming agent result, returns the
+	## they hostname of the originating host system.
 	global hostname: function(ctx: Context): string;
 
-	## TODO: Add docs.
+	## Given the query context from an incoming agent result, return
+	## a human-readable representation of the type of change suitable for
+	## logging.
 	global change_type: function(ctx: Context): string;
 
-	## TODO: Add docs.
-	global log_column_map: function(rec: any, strip_prefix: string): table[string] of string;
-
-	## TODO: Add docs.
+	## Returns a set of tables that an agent provides.
+	##
+	## hid: unique of host to return tables for (which must be connected)
+	##
+	## Returns: set of tables names; empty if host isn't known/connected
 	global supported_tables: function(hid: string): set[string];
+
+	## Helper function that computes a mapping for the logging framework
+	## that strips a common prefix from all column names.
+	##
+	## rec: record type representing the columns to be logged
+	## strip_prefix: a common prefix to strip from logged column names
+	##
+	## Returns: table with one entry per record field, mapping
+	## `<prefix>.<field-name>` to `<field-name>`.
+	global log_column_map: function(rec: any, strip_prefix: string): table[string] of string;
 
 	## The logging stream identifier for ``zeek-agent.log``.
 	redef enum Log::ID += {
@@ -318,8 +333,6 @@ event package_version_line(description: Input::EventDescription,
 {
 	if ( line != "" )
 		package_version = line;
-
-	print package_version;
 }
 
 event send_zeek_hello()
