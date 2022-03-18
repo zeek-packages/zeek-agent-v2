@@ -1,7 +1,11 @@
 module ZeekAgent_Sockets;
 
 export {
+	## Query frequency.
 	option query_interval = 30 secs;
+
+	## Subscription type
+	option subscription = ZeekAgent::Differences;
 
 	## Logging stream identifier for the tables.log.
 	redef enum Log::ID += {
@@ -14,10 +18,10 @@ export {
 		process: string &optional &log; ##< name of process holding socket
 		family: string &optional &log; ##< `IPv4` or `IPv6`
 		protocol: count &optional &log; ##< transport protocol
-		local_port: count &optional &log; ##< local port number
-		remote_port: count &optional &log; ##< remote port number
 		local_addr: addr &optional &log; ##< local IP address
+		local_port: count &optional &log; ##< local port number
 		remote_addr: addr &optional &log; ##< remote IP address
+		remote_port: count &optional &log; ##< remote port number
 		state: string &optional &log; ##< state of socket
 	};
 
@@ -61,5 +65,5 @@ event zeek_init()
 	    $sql_stmt="SELECT * FROM sockets",
 	    $event_=query_result,
 	    $schedule_=query_interval,
-	    $subscription=ZeekAgent::Differences]);
+	    $subscription=subscription]);
 }

@@ -1,7 +1,11 @@
 module ZeekAgent_SystemLogs;
 
 export {
+	## Query frequency.
 	option query_interval = 30 secs;
+
+	## Subscription type
+	option subscription = ZeekAgent::Differences;
 
 	## Logging stream identifier for the tables.log.
 	redef enum Log::ID += {

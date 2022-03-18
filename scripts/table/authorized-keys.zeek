@@ -8,6 +8,9 @@ export {
 	## Query frequency.
 	option query_interval = 30 secs;
 
+	## Subscription type
+	option subscription = ZeekAgent::Differences;
+
 	## Logging stream identifier for the tables.log.
 	redef enum Log::ID += {
 		LOG
@@ -66,6 +69,6 @@ event zeek_init()
 		    $sql_stmt=stmt,
 		    $event_=query_result,
 		    $schedule_=query_interval,
-		    $subscription=ZeekAgent::Differences]);
+		    $subscription=subscription]);
 	}
 }
