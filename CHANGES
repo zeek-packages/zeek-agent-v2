@@ -1,3 +1,22 @@
+2.0.2-5 | 2022-03-22 17:18:34 +0100
+
+  * Change default subscription mode to not return an initial table
+    snapshot. So far differential queries first returned an initial
+    snapshot of the table, and then ongoing diffs from there onwards.
+    Because doing so leads to substantial event volume when connecting
+    to an agent, the default now skips the initial snapshot: the first
+    result will just be empty, and it's then diffs from there onwards.
+    The old behavior can be restored through options that all table
+    scripts offer to their their subscription mode back.
+
+  * Update to agent's new column types for built-in tables. A number
+    of tables have columns that changed their types in recent agent
+    versions.
+
+  * Add missing script documentation, plus small script clean up.
+
+  * Reformat Zeek scripts with current zeek-format.
+
 2.0.2 | 2022-03-04 16:31:32 +0100
 
   * Tweak release naming.

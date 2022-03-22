@@ -5,8 +5,8 @@
 #unset_field	-
 #path	zeek-agent
 #open XXXX-XX-XX-XX-XX-XX
-#fields	ts	type_	hid	hostname	address	version	uptime	platform	os_name
-#types	time	string	string	string	string	int	interval	string	string
+#fields	ts	type_	hid	hostname	addresses	version	uptime	platform	os_name
+#types	time	string	string	string	set[addr]	int	interval	string	string
 XXXXXXXXXX.XXXXXX	join	fake_agent	-	-	-	-	-	-
 XXXXXXXXXX.XXXXXX	update	fake_agent	-	-	-	-	-	-
 XXXXXXXXXX.XXXXXX	shutdown	fake_agent	-	-	-	-	-	-

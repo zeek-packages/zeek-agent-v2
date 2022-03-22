@@ -1,7 +1,11 @@
 module ZeekAgent_Processes;
 
 export {
+	## Query frequency.
 	option query_interval = 30 secs;
+
+	## Subscription type
+	option subscription = ZeekAgent::Differences;
 
 	## Logging stream identifier for the tables.log.
 	redef enum Log::ID += {
@@ -10,12 +14,12 @@ export {
 
 	type Columns: record {
 		name: string &optional &log;
-		pid: int &optional &log;
-		uid: int &optional &log;
-		gid: int &optional &log;
-		ppid: int &optional &log;
+		pid: count &optional &log;
+		uid: count &optional &log;
+		gid: count &optional &log;
+		ppid: count &optional &log;
 		priority: int &optional &log;
-		startup: int &optional &log;
+		startup: interval &optional &log;
 	};
 
 	type Info: record {
@@ -30,8 +34,14 @@ export {
 	global log_policy: Log::PolicyHook;
 }
 
-event ZeekAgent_Processes::query_result(ctx: ZeekAgent::Context, columns: Columns) {
-	local info = Info($t = network_time(), $hid = ctx$agent_id, $host = ZeekAgent::hostname(ctx), $columns = columns);
+event ZeekAgent_Processes::query_result(ctx: ZeekAgent::Context,
+    columns: Columns)
+{
+	local info = Info(
+	    $t=network_time(),
+	    $hid=ctx$agent_id,
+	    $host=ZeekAgent::hostname(ctx),
+	    $columns=columns);
 
 	if ( ctx?$change )
 		info$change = ZeekAgent::change_type(ctx);
@@ -39,11 +49,19 @@ event ZeekAgent_Processes::query_result(ctx: ZeekAgent::Context, columns: Column
 	Log::write(LOG, info);
 }
 
-event zeek_init() {
+event zeek_init()
+{
 	local field_name_map = ZeekAgent::log_column_map(Columns, "columns.");
-	Log::create_stream(LOG, [$columns = Info, $policy = log_policy]);
+	Log::create_stream(LOG, [$columns=Info, $policy=log_policy]);
 	Log::remove_default_filter(LOG);
-	Log::add_filter(LOG, [$name = "default", $path = "zeek-agent-processes", $field_name_map = field_name_map]);
+	Log::add_filter(LOG, [
+	    $name="default",
+	    $path="zeek-agent-processes",
+	    $field_name_map=field_name_map]);
 
-	ZeekAgent::query([$sql_stmt = "SELECT name,pid,uid,gid,ppid,priority,startup FROM processes", $event_ = query_result, $schedule_ = query_interval, $subscription = ZeekAgent::Differences]);
+	ZeekAgent::query([
+	    $sql_stmt="SELECT name,pid,uid,gid,ppid,priority,startup FROM processes",
+	    $event_=query_result,
+	    $schedule_=query_interval,
+	    $subscription=subscription]);
 }

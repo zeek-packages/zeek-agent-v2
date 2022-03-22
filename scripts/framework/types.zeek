@@ -14,6 +14,10 @@ export {
 		## previous result.
 		Differences,
 
+		## Return an initial snapshot, then rows that got added or
+		## deleted compared to the previous result.
+		SnapshotPlusDifferences,
+
 		## Return only rows added since the previous result. (This is
 		## most useful for evented tables, hence the name).
 		Events,

@@ -1,7 +1,11 @@
 module ZeekAgent_Sockets;
 
 export {
+	## Query frequency.
 	option query_interval = 30 secs;
+
+	## Subscription type
+	option subscription = ZeekAgent::Differences;
 
 	## Logging stream identifier for the tables.log.
 	redef enum Log::ID += {
@@ -10,14 +14,14 @@ export {
 
 	## Open network sockets.
 	type Columns: record {
-		pid: int &optional &log; ##< ID of process holding socket
+		pid: count &optional &log; ##< ID of process holding socket
 		process: string &optional &log; ##< name of process holding socket
 		family: string &optional &log; ##< `IPv4` or `IPv6`
-		protocol: int &optional &log; ##< transport protocol
-		local_port: int &optional &log; ##< local port number
-		remote_port: int &optional &log; ##< remote port number
-		local_addr: string &optional &log; ##< local IP address
-		remote_addr: string &optional &log; ##< remote IP address
+		protocol: count &optional &log; ##< transport protocol
+		local_addr: addr &optional &log; ##< local IP address
+		local_port: count &optional &log; ##< local port number
+		remote_addr: addr &optional &log; ##< remote IP address
+		remote_port: count &optional &log; ##< remote port number
 		state: string &optional &log; ##< state of socket
 	};
 
@@ -33,8 +37,13 @@ export {
 	global log_policy: Log::PolicyHook;
 }
 
-event ZeekAgent_Sockets::query_result(ctx: ZeekAgent::Context, columns: Columns) {
-	local info = Info($t = network_time(), $hid = ctx$agent_id, $host = ZeekAgent::hostname(ctx), $columns = columns);
+event ZeekAgent_Sockets::query_result(ctx: ZeekAgent::Context, columns: Columns)
+{
+	local info = Info(
+	    $t=network_time(),
+	    $hid=ctx$agent_id,
+	    $host=ZeekAgent::hostname(ctx),
+	    $columns=columns);
 
 	if ( ctx?$change )
 		info$change = ZeekAgent::change_type(ctx);
@@ -42,11 +51,19 @@ event ZeekAgent_Sockets::query_result(ctx: ZeekAgent::Context, columns: Columns)
 	Log::write(LOG, info);
 }
 
-event zeek_init() {
+event zeek_init()
+{
 	local field_name_map = ZeekAgent::log_column_map(Columns, "columns.");
-	Log::create_stream(LOG, [$columns = Info, $policy = log_policy]);
+	Log::create_stream(LOG, [$columns=Info, $policy=log_policy]);
 	Log::remove_default_filter(LOG);
-	Log::add_filter(LOG, [$name = "default", $path = "zeek-agent-sockets", $field_name_map = field_name_map]);
+	Log::add_filter(LOG, [
+	    $name="default",
+	    $path="zeek-agent-sockets",
+	    $field_name_map=field_name_map]);
 
-	ZeekAgent::query([$sql_stmt = "SELECT * FROM sockets", $event_ = query_result, $schedule_ = query_interval, $subscription = ZeekAgent::Differences]);
+	ZeekAgent::query([
+	    $sql_stmt="SELECT * FROM sockets",
+	    $event_=query_result,
+	    $schedule_=query_interval,
+	    $subscription=subscription]);
 }

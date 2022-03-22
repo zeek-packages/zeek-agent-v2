@@ -16,16 +16,16 @@ export {
 		agent_id: string;
 		instance_id: string;
 		hostname: string &optional;
-		address: string &optional;
+		addresses: set[addr] &optional;
 		platform: string &optional;
 		os_name: string &optional;
 		kernel_name: string &optional;
 		kernel_version: string &optional;
 		kernel_arch: string &optional;
-		agent_version: int &optional;
+		agent_version: count &optional;
 		broker: string &optional;
-		uptime: int &optional;
-		tables: string &optional;
+		uptime: interval &optional;
+		tables: set[string] &optional;
 	};
 
 	## Zeek-side ``hello`` record broadcasted regularly by Zeek to all clients.
@@ -51,7 +51,8 @@ export {
 	global zeek_shutdown_v1: event(zeek_instance: string);
 
 	## Sends query to agents.
-	global install_query_v1: event(zeek_instance: string, query_id: string, query: ZeekAgent::Query);
+	global install_query_v1: event(zeek_instance: string, query_id: string,
+	    query: ZeekAgent::Query);
 
 	## Cancels a previously sent query with agents.
 	global cancel_query_v1: event(zeek_instance: string, query_id: string);

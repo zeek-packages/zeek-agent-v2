@@ -25,7 +25,8 @@ export {
 	## the target agent
 	##
 	## Returns: a unique ID for the query that can be used to later cancel it
-	global query: function(q: Query, scope: Scope &default=Group, target: string &default="all"): string;
+	global query: function(q: Query, scope: Scope &default=Group, target: string
+	    &default="all"): string;
 
 	## Cancels a previously sent query with all relevant agents. If the query isn't active anymore (or otherwise not know),
 	## the operation is ignored without error message.
@@ -33,20 +34,35 @@ export {
 	## query_id: the query's ID as returned by ``query()``
 	global cancel: function(query_id: string);
 
-	## TODO: Add docs.
+	## Given the query context from an incoming agent result, returns the
+	## unique ID of the originating host system.
 	global host_id: function(ctx: Context): string;
 
-	## TODO: Add docs.
+	## Given the query context from an incoming agent result, returns the
+	## they hostname of the originating host system.
 	global hostname: function(ctx: Context): string;
 
-	## TODO: Add docs.
+	## Given the query context from an incoming agent result, return
+	## a human-readable representation of the type of change suitable for
+	## logging.
 	global change_type: function(ctx: Context): string;
 
-	## TODO: Add docs.
-	global log_column_map: function(rec: any, strip_prefix: string): table[string] of string;
-
-	## TODO: Add docs.
+	## Returns a set of tables that an agent provides.
+	##
+	## hid: unique of host to return tables for (which must be connected)
+	##
+	## Returns: set of tables names; empty if host isn't known/connected
 	global supported_tables: function(hid: string): set[string];
+
+	## Helper function that computes a mapping for the logging framework
+	## that strips a common prefix from all column names.
+	##
+	## rec: record type representing the columns to be logged
+	## strip_prefix: a common prefix to strip from logged column names
+	##
+	## Returns: table with one entry per record field, mapping
+	## `<prefix>.<field-name>` to `<field-name>`.
+	global log_column_map: function(rec: any, strip_prefix: string): table[string] of string;
 
 	## The logging stream identifier for ``zeek-agent.log``.
 	redef enum Log::ID += {
@@ -59,7 +75,7 @@ export {
 		type_: string &log; ##< type of update
 		hid: string &log; ##< unique ID of host
 		hostname: string &log &optional; ##< agent's hostname
-		address: string &log &optional; ##< agent's address
+		addresses: set[addr] &log &optional; ##< agent's primary addresses
 		version: int &log &optional; ##< version of Zeek Agent running on host
 		uptime: interval &log &optional; ##< uptime of host
 		platform: string &log &optional; ##< platform of host
@@ -109,10 +125,12 @@ type Agent: record {
 };
 
 # Callback for an agent's state expiring.
-global agent_expired: function(t: table[string] of Agent, agent_id: string): interval;
+global agent_expired: function(t: table[string] of Agent, agent_id: string)
+    : interval;
 
 # Table of all currnetly know agents.
-global agents: table[string] of Agent &read_expire=agent_timeout &expire_func=agent_expired;
+global agents: table[string] of Agent &read_expire=agent_timeout
+    &expire_func=agent_expired;
 
 # Internal state per active query.
 type QueryState: record {
@@ -127,25 +145,26 @@ global queries: table[string] of QueryState;
 
 ### Internal helper functions
 
-function log_update(agent_id: string, type_: string) {
+function log_update(agent_id: string, type_: string)
+{
 	# Callers guarantee that the ID is in the table.
 	local agent = agents[agent_id];
 
-	local log: Info = [$ts = network_time(), $type_ = type_, $hid = agent_id];
+	local log: Info = [$ts=network_time(), $type_=type_, $hid=agent_id];
 
 	local hello = agent$hello;
 
 	if ( hello?$hostname )
 		log$hostname = hello$hostname;
 
-	if ( hello?$address )
-		log$address = hello$address;
+	if ( hello?$addresses )
+		log$addresses = hello$addresses;
 
 	if ( hello?$agent_version )
 		log$version = hello$agent_version;
 
 	if ( hello?$uptime )
-		log$uptime = double_to_interval(hello$uptime);
+		log$uptime = hello$uptime;
 
 	if ( hello?$platform )
 		log$platform = hello$platform;
@@ -156,12 +175,14 @@ function log_update(agent_id: string, type_: string) {
 	Log::write(LOG, log);
 }
 
-function agent_expired(t: table[string] of Agent, agent_id: string): interval {
+function agent_expired(t: table[string] of Agent, agent_id: string): interval
+{
 	log_update(agent_id, "offline");
 	return 0 secs;
 }
 
-function make_topic(qstate: QueryState, agent_id: string): string {
+function make_topic(qstate: QueryState, agent_id: string): string
+{
 	if ( qstate$scope == Host )
 		return fmt("/zeek-agent/query/host/%s", agent_id);
 
@@ -171,83 +192,110 @@ function make_topic(qstate: QueryState, agent_id: string): string {
 			return fmt("/zeek-agent/query/group/%s", to_lower(qstate$target));
 		else
 			# Group message to individual host only, if subscribed.
-			return fmt("/zeek-agent/query/group/%s/%s", agent_id, to_lower(qstate$target));
+			return fmt("/zeek-agent/query/group/%s/%s", agent_id, to_lower(
+			    qstate$target));
 	}
 
 	# can't get here
 	Reporter::fatal("ZeekAgent::make_topic unreachable");
 }
 
-function send_query_to_agent(query_id: string, agent_id: string) {
+function send_query_to_agent(query_id: string, agent_id: string)
+{
 	local agent = agents[agent_id];
 	local qstate = queries[query_id];
-	local ev = Broker::make_event(ZeekAgentAPI::install_query_v1, zeek_instance, qstate$query_id, qstate$query);
+	local ev = Broker::make_event(ZeekAgentAPI::install_query_v1, zeek_instance,
+	    qstate$query_id, qstate$query);
 	Broker::publish(make_topic(qstate, agent_id), ev);
 }
 
-function send_query_to_all_agents(query_id: string) {
+function send_query_to_all_agents(query_id: string)
+{
 	local qstate = queries[query_id];
-	local ev = Broker::make_event(ZeekAgentAPI::install_query_v1, zeek_instance, qstate$query_id, qstate$query);
+	local ev = Broker::make_event(ZeekAgentAPI::install_query_v1, zeek_instance,
+	    qstate$query_id, qstate$query);
 	Broker::publish(make_topic(qstate, ""), ev);
 }
 
-function send_hello_to_agent(agent_id: string) {
-	local hello: ZeekAgentAPI::ZeekHelloV1 = [$version_string = zeek_version(), $version_number = Version::number, $package_version = package_version];
+function send_hello_to_agent(agent_id: string)
+{
+	local hello: ZeekAgentAPI::ZeekHelloV1 = [
+	    $version_string=zeek_version(),
+	    $version_number=Version::number,
+	    $package_version=package_version];
 	local ev = Broker::make_event(ZeekAgentAPI::zeek_hello_v1, zeek_instance, hello);
 	Broker::publish(fmt("/zeek-agent/query/host/%s", agent_id), ev);
 }
 
-function send_hello_to_all_agents() {
-	local hello: ZeekAgentAPI::ZeekHelloV1 = [$version_string = zeek_version(), $version_number = Version::number, $package_version = package_version];
+function send_hello_to_all_agents()
+{
+	local hello: ZeekAgentAPI::ZeekHelloV1 = [
+	    $version_string=zeek_version(),
+	    $version_number=Version::number,
+	    $package_version=package_version];
 	local ev = Broker::make_event(ZeekAgentAPI::zeek_hello_v1, zeek_instance, hello);
 	Broker::publish("/zeek-agent/query/group/all", ev);
 }
 
-function send_all_queries_to_agent(agent_id: string) {
+function send_all_queries_to_agent(agent_id: string)
+{
 	for ( query_id in queries )
 		send_query_to_agent(query_id, agent_id);
 }
 
-function send_cancel_to_all_agents(query_id: string) {
+function send_cancel_to_all_agents(query_id: string)
+{
 	local qstate = queries[query_id];
-	local ev = Broker::make_event(ZeekAgentAPI::cancel_query_v1, zeek_instance, query_id);
+	local ev = Broker::make_event(ZeekAgentAPI::cancel_query_v1, zeek_instance,
+	    query_id);
 	Broker::publish(make_topic(qstate, ""), ev);
 }
 
 ### Public functions
 
-function cancel(query_id: string) {
+function cancel(query_id: string)
+{
 	send_cancel_to_all_agents(query_id);
 }
 
-function query(query: Query, scope: Scope, target: string): string {
+function query(query: Query, scope: Scope, target: string): string
+{
 	local query_id = unique_id("za_");
-	queries[query_id] = [$query_id = query_id, $scope = scope, $target = target, $query = query];
+	queries[query_id] = [
+	    $query_id=query_id,
+	    $scope=scope,
+	    $target=target,
+	    $query=query];
 
 	send_query_to_all_agents(query_id);
 	return query_id;
 }
 
-function hostname(ctx: Context): string {
+function hostname(ctx: Context): string
+{
 	if ( ctx$agent_id !in agents )
 		return "<unknown>";
 
 	local agent = agents[ctx$agent_id];
 
-	if ( agent$hello$hostname != "" )
+	if ( agent$hello?$hostname && agent$hello$hostname != "" )
 		return agent$hello$hostname;
 
-	if ( agent$hello$address != "" )
-		return agent$hello$address;
+	if ( agent$hello?$addresses && |agent$hello$addresses| > 0 ) {
+		for ( a in agent$hello$addresses )
+			return fmt("%s", a);
+	}
 
 	return "<unknown>";
 }
 
-function change_type(ctx: Context): string {
-	if ( !ctx?$change )
+function change_type(ctx: Context): string
+{
+	if ( ! ctx?$change )
 		return "";
 
-	switch (ctx$change) {case ZeekAgent::Add:
+	switch ( ctx$change ) {
+		case ZeekAgent::Add:
 			return "new";
 		case ZeekAgent::Delete:
 			return "gone";
@@ -256,7 +304,8 @@ function change_type(ctx: Context): string {
 	return "should-not-happen";
 }
 
-function log_column_map(rec: any, strip_prefix: string): table[string] of string {
+function log_column_map(rec: any, strip_prefix: string): table[string] of string
+{
 	local map: table[string] of string;
 
 	for ( fname in record_fields(rec) )
@@ -265,16 +314,12 @@ function log_column_map(rec: any, strip_prefix: string): table[string] of string
 	return map;
 }
 
-function supported_tables(agent_id: string): set[string] {
-	if ( agent_id !in agents )
+function supported_tables(agent_id: string): set[string]
+{
+	if ( agent_id in agents )
+		return agents[agent_id]$hello$tables;
+	else
 		return set();
-
-	local tables = split_string(agents[agent_id]$hello$tables, /,/);
-	local result: set[string];
-	for ( i in tables )
-		add result[tables[i]];
-
-	return result;
 }
 
 ### Event handlers
@@ -283,27 +328,40 @@ type PackageVersionLine: record {
 	version: string;
 };
 
-event package_version_line(description: Input::EventDescription, ev: Input::Event, line: string) {
+event package_version_line(description: Input::EventDescription,
+    ev: Input::Event, line: string)
+{
 	if ( line != "" )
 		package_version = line;
-
-	print package_version;
 }
 
-event send_zeek_hello() {
+event send_zeek_hello()
+{
 	send_hello_to_all_agents();
 	schedule hello_interval { send_zeek_hello() };
 }
 
-event zeek_init() &priority=100 {
+event zeek_init() &priority=100
+{
 	zeek_instance = unique_id("zeek_");
-	Log::create_stream(LOG, [$columns = Info, $path = "zeek-agent", $policy = log_policy]);
+	Log::create_stream(LOG, [
+	    $columns=Info,
+	    $path="zeek-agent",
+	    $policy=log_policy]);
 
 	if ( file_size(package_version_file) > 0 )
-		Input::add_event([$source = package_version_file, $reader = Input::READER_RAW, $mode = Input::MANUAL, $name = "package_version", $fields = PackageVersionLine, $ev = package_version_line, $want_record = F]);
+		Input::add_event([
+		    $source=package_version_file,
+		    $reader=Input::READER_RAW,
+		    $mode=Input::MANUAL,
+		    $name="package_version",
+		    $fields=PackageVersionLine,
+		    $ev=package_version_line,
+		    $want_record=F]);
 }
 
-event zeek_init() &priority=-10 {
+event zeek_init() &priority=-10
+{
 	if ( listen_port != 0/tcp )
 		Broker::listen(listen_address, listen_port, listen_retry);
 
@@ -313,7 +371,8 @@ event zeek_init() &priority=-10 {
 	schedule hello_interval { send_zeek_hello() };
 }
 
-event zeek_done() {
+event zeek_done()
+{
 	# This is best-effort, the message may not make it out anymore.
 	# But the agents will eventually timeout their state once they don't
 	# hear from us anymore.
@@ -324,7 +383,9 @@ event zeek_done() {
 	Broker::publish("/zeek-agent/query/group/all", ev);
 }
 
-event ZeekAgentAPI::agent_hello_v1(ctx: ZeekAgent::Context, columns: ZeekAgentAPI::AgentHelloV1) {
+event ZeekAgentAPI::agent_hello_v1(ctx: ZeekAgent::Context,
+    columns: ZeekAgentAPI::AgentHelloV1)
+{
 	local agent_id = ctx$agent_id;
 
 	if ( agent_id in agents ) {
@@ -343,8 +404,12 @@ event ZeekAgentAPI::agent_hello_v1(ctx: ZeekAgent::Context, columns: ZeekAgentAP
 			log_update(agent_id, "reconnect");
 			send_hello_to_agent(agent_id);
 			send_all_queries_to_agent(agent_id);
-		}} else {
-		agents[agent_id] = [$last_seen = network_time(), $hello_id = ctx$query_id, $hello = columns];
+		}
+	} else {
+		agents[agent_id] = [
+		    $last_seen=network_time(),
+		    $hello_id=ctx$query_id,
+		    $hello=columns];
 		log_update(agent_id, "join");
 		send_hello_to_agent(agent_id);
 		send_all_queries_to_agent(agent_id);
@@ -352,13 +417,15 @@ event ZeekAgentAPI::agent_hello_v1(ctx: ZeekAgent::Context, columns: ZeekAgentAP
 	}
 }
 
-event ZeekAgentAPI::agent_shutdown_v1(ctx: ZeekAgent::Context) {
+event ZeekAgentAPI::agent_shutdown_v1(ctx: ZeekAgent::Context)
+{
 	local agent_id = ctx$agent_id;
 
 	if ( agent_id in agents )
 		log_update(agent_id, "shutdown");
 }
 
-event ZeekAgentAPI::agent_error_v1(ctx: ZeekAgent::Context, msg: string) {
+event ZeekAgentAPI::agent_error_v1(ctx: ZeekAgent::Context, msg: string)
+{
 	Reporter::error(fmt("error from Zeek Agent: %s [%s]", msg, ctx$agent_id));
 }
