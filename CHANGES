@@ -1,3 +1,9 @@
+2.0.2-8 | 2022-03-23 11:17:17 +0100
+
+  * Extend SSH table script to log `sshd` configuration options. We
+    also rename the SSH script and some of its identifiers to reflect
+    the broadened scope.
+
 2.0.2-5 | 2022-03-22 17:18:34 +0100
 
   * Change default subscription mode to not return an initial table
