@@ -1,7 +1,7 @@
 [package]
 version = 0.2-dev
 script_dir = scripts
-build_command = git describe --always >scripts/version.dat || true
+build_command = git describe --always --long | sed 's/-[^-]*$//' >scripts/version.dat || true
 test_command = make test
 summary = Framework collecting Zeek Agent information from endpoints
 description =

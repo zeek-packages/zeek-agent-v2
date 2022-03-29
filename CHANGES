@@ -1,10 +1,10 @@
-2.0.2-8 | 2022-03-23 11:17:17 +0100
+2.1.0 | 2022-03-29 12:36:09 +0200
+
+  Requires Zeek Agent >= 2.1.0.
 
   * Extend SSH table script to log `sshd` configuration options. We
     also rename the SSH script and some of its identifiers to reflect
     the broadened scope.
-
-2.0.2-5 | 2022-03-22 17:18:34 +0100
 
   * Change default subscription mode to not return an initial table
     snapshot. So far differential queries first returned an initial
@@ -13,11 +13,12 @@
     to an agent, the default now skips the initial snapshot: the first
     result will just be empty, and it's then diffs from there onwards.
     The old behavior can be restored through options that all table
-    scripts offer to their their subscription mode back.
+    scripts offer to changer their subscription modes back.
 
   * Update to agent's new column types for built-in tables. A number
-    of tables have columns that changed their types in recent agent
-    versions.
+    of table columns have changed their types with Zeek Agent 2.1.
+
+  * Remove commit ID from generated version number.
 
   * Add missing script documentation, plus small script clean up.
 
