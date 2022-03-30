@@ -18,7 +18,7 @@ export {
 		uid: count &optional &log;
 		gid: count &optional &log;
 		ppid: count &optional &log;
-		priority: int &optional &log;
+		priority: string &optional &log;
 		startup: interval &optional &log;
 	};
 
