@@ -18,7 +18,7 @@ export {
 		full_name: string &optional &log; ##< full name
 		is_admin: bool &optional &log; ##< 1 if user has adminstrative privileges
 		is_system: bool &optional &log; ##< 1 if user correponds to OS service
-		uid: count &optional &log; ##< user ID
+		uid: string &optional &log; ##< user ID
 		gid: count &optional &log; ##< group ID
 		home: string &optional &log; ##< path to home directory
 		shell: string &optional &log; ##< path to default shell
