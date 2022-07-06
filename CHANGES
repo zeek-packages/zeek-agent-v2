@@ -1,4 +1,6 @@
-2.1.0-2 | 2022-04-26 11:40:41 +0200
+2.2.0 | 2022-07-06 10:28:27 +0200
+
+  * Enable WebSocket support on Zeek >= 5.0.
 
   * Update tables for Windows changes.
 
