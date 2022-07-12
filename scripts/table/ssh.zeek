@@ -16,10 +16,7 @@ export {
 	option subscription = ZeekAgent::Differences;
 
 	## Logging stream identifier for the tables.log.
-	redef enum Log::ID += {
-		LOG_CONFIGS,
-		LOG_KEYS
-	};
+	redef enum Log::ID += { LOG_CONFIGS, LOG_KEYS };
 
 	## Configuration option extracgt from a configuratin file.
 	type ConfigOption: record {
@@ -68,75 +65,66 @@ export {
 
 event ZeekAgent_SSH::query_result_configs(ctx: ZeekAgent::Context,
     columns: ColumnsConfigs)
-{
-	local info = InfoConfigs(
-	    $t=network_time(),
-	    $hid=ctx$agent_id,
-	    $host=ZeekAgent::hostname(ctx),
-	    $columns=columns);
+	{
+	local info = InfoConfigs($t=network_time(), $hid=ctx$agent_id,
+	    $host=ZeekAgent::hostname(ctx), $columns=columns);
 
 	if ( ctx?$change )
 		info$change = ZeekAgent::change_type(ctx);
 
 	Log::write(LOG_CONFIGS, info);
-}
+	}
 
 event ZeekAgent_SSH::query_result_keys(ctx: ZeekAgent::Context,
     columns: ColumnsKeys)
-{
-	local info = InfoKeys(
-	    $t=network_time(),
-	    $hid=ctx$agent_id,
-	    $host=ZeekAgent::hostname(ctx),
-	    $columns=columns);
+	{
+	local info = InfoKeys($t=network_time(), $hid=ctx$agent_id,
+	    $host=ZeekAgent::hostname(ctx), $columns=columns);
 
 	if ( ctx?$change )
 		info$change = ZeekAgent::change_type(ctx);
 
 	Log::write(LOG_KEYS, info);
-}
-
-event zeek_init()
-{
-	if ( |config_paths_to_watch| != 0 ) {
-		local field_name_map_configs = ZeekAgent::log_column_map(ColumnsConfigs,
-		    "columns.");
-		Log::create_stream(LOG_CONFIGS, [
-		    $columns=InfoConfigs,
-		    $policy=log_policy_configs]);
-		Log::remove_default_filter(LOG_CONFIGS);
-		Log::add_filter(LOG_CONFIGS, [
-		    $name="default",
-		    $path="zeek-agent-ssh-configs",
-		    $field_name_map=field_name_map_configs]);
-
-		for ( p in config_paths_to_watch ) {
-			local stmt_configs = fmt("SELECT * FROM files_columns(\"%s\", \"$1:text,$2:text\")", p);
-			ZeekAgent::query([
-			    $sql_stmt=stmt_configs,
-			    $event_=query_result_configs,
-			    $schedule_=query_interval,
-			    $subscription=subscription]);
-		}
 	}
 
-	if ( |key_paths_to_watch| != 0 ) {
+event zeek_init()
+	{
+	if ( |config_paths_to_watch| != 0 )
+		{
+		local field_name_map_configs = ZeekAgent::log_column_map(ColumnsConfigs,
+		    "columns.");
+		Log::create_stream(LOG_CONFIGS, [$columns=InfoConfigs,
+		    $policy=log_policy_configs]);
+		Log::remove_default_filter(LOG_CONFIGS);
+		Log::add_filter(LOG_CONFIGS, [$name="default", $path="zeek-agent-ssh-configs",
+		    $field_name_map=field_name_map_configs]);
+
+		for ( p in config_paths_to_watch )
+			{
+			local stmt_configs = fmt("SELECT * FROM files_columns(\"%s\", \"$1:text,$2:text\")",
+			    p);
+			ZeekAgent::query([$sql_stmt=stmt_configs, $event_=query_result_configs,
+			    $schedule_=query_interval,
+			    $subscription=subscription]);
+			}
+		}
+
+	if ( |key_paths_to_watch| != 0 )
+		{
 		local field_name_map_keys = ZeekAgent::log_column_map(ColumnsKeys,
 		    "columns.");
 		Log::create_stream(LOG_KEYS, [$columns=InfoKeys, $policy=log_policy_keys]);
 		Log::remove_default_filter(LOG_KEYS);
-		Log::add_filter(LOG_KEYS, [
-		    $name="default",
+		Log::add_filter(LOG_KEYS, [$name="default",
 		    $path="zeek-agent-ssh-authorized-keys",
 		    $field_name_map=field_name_map_keys]);
 
-		for ( p in key_paths_to_watch ) {
+		for ( p in key_paths_to_watch )
+			{
 			local stmt_keys = fmt("SELECT * FROM files_lines(\"%s\")", p);
-			ZeekAgent::query([
-			    $sql_stmt=stmt_keys,
-			    $event_=query_result_keys,
+			ZeekAgent::query([$sql_stmt=stmt_keys, $event_=query_result_keys,
 			    $schedule_=query_interval,
 			    $subscription=subscription]);
+			}
 		}
 	}
-}

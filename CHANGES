@@ -1,3 +1,7 @@
+2.3.0-dev.3 | 2022-07-12 10:57:09 +0200
+
+  * By default, listen on 0.0.0.0 for WebSocket. Zeek's default is 127.0.0.1.
+
 2.2.0 | 2022-07-06 10:28:27 +0200
 
   * Enable WebSocket support on Zeek >= 5.0.
