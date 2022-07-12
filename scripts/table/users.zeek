@@ -8,9 +8,7 @@ export {
 	option subscription = ZeekAgent::Differences;
 
 	## Logging stream identifier for the tables.log.
-	redef enum Log::ID += {
-		LOG
-	};
+	redef enum Log::ID += { LOG };
 
 	## List of users on system
 	type Columns: record {
@@ -38,32 +36,24 @@ export {
 }
 
 event ZeekAgent_Users::query_result(ctx: ZeekAgent::Context, columns: Columns)
-{
-	local info = Info(
-	    $t=network_time(),
-	    $hid=ctx$agent_id,
-	    $host=ZeekAgent::hostname(ctx),
-	    $columns=columns);
+	{
+	local info = Info($t=network_time(), $hid=ctx$agent_id,
+	    $host=ZeekAgent::hostname(ctx), $columns=columns);
 
 	if ( ctx?$change )
 		info$change = ZeekAgent::change_type(ctx);
 
 	Log::write(LOG, info);
-}
+	}
 
 event zeek_init()
-{
+	{
 	local field_name_map = ZeekAgent::log_column_map(Columns, "columns.");
 	Log::create_stream(LOG, [$columns=Info, $policy=log_policy]);
 	Log::remove_default_filter(LOG);
-	Log::add_filter(LOG, [
-	    $name="default",
-	    $path="zeek-agent-users",
+	Log::add_filter(LOG, [$name="default", $path="zeek-agent-users",
 	    $field_name_map=field_name_map]);
 
-	ZeekAgent::query([
-	    $sql_stmt="SELECT * FROM users",
-	    $event_=query_result,
-	    $schedule_=query_interval,
-	    $subscription=subscription]);
-}
+	ZeekAgent::query([$sql_stmt="SELECT * FROM users", $event_=query_result,
+	    $schedule_=query_interval, $subscription=subscription]);
+	}
