@@ -360,7 +360,11 @@ event zeek_init() &priority=100
 event zeek_init() &priority=-10
 	{
 @if ( Version::number >= 50000 )
-	Broker::listen_websocket();
+	if ( Broker::default_listen_address_websocket != "" )
+		Broker::listen_websocket();
+	else
+		# Default is 127.0.0.1, which isn't very helpful for us.
+		Broker::listen_websocket("0.0.0.0");
 @else
 	if ( listen_port != 0/tcp )
 		Broker::listen(listen_address, listen_port, listen_retry);
