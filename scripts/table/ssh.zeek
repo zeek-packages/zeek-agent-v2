@@ -6,8 +6,10 @@ export {
 	    "/etc/ssh/sshd_config.d/*");
 
 	## Paths to find `authorized_keys` files in.
-	option key_paths_to_watch = set("/home/*/.ssh/authorized_keys",
-	    "/Users/*/.ssh/authorized_keys");
+	option key_paths_to_watch: table[string] of set[string] = {
+		["linux"] = set("/home/*/.ssh/authorized_keys"),
+		["darwin"] = set("/Users/*/.ssh/authorized_keys")
+	};
 
 	## Query frequency.
 	option query_interval = 30 secs;
@@ -119,12 +121,16 @@ event zeek_init()
 		    $path="zeek-agent-ssh-authorized-keys",
 		    $field_name_map=field_name_map_keys]);
 
-		for ( p in key_paths_to_watch )
+
+		for ( platform in key_paths_to_watch )
 			{
-			local stmt_keys = fmt("SELECT * FROM files_lines(\"%s\")", p);
-			ZeekAgent::query([$sql_stmt=stmt_keys, $event_=query_result_keys,
-			    $schedule_=query_interval,
-			    $subscription=subscription]);
+			for ( path in key_paths_to_watch[platform] )
+				{
+				local stmt_keys = fmt("SELECT * FROM files_lines(\"%s\")", path);
+				ZeekAgent::query([$sql_stmt=stmt_keys, $event_=query_result_keys,
+				    $schedule_=query_interval,
+				    $subscription=subscription], ZeekAgent::Group, platform);
+				}
 			}
 		}
 	}

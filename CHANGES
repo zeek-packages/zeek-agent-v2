@@ -1,3 +1,9 @@
+2.3.0-dev.5 | 2024-01-09 08:54:27 +0100
+
+  * `authorized_keys`: Split file globs by platform. Scanning
+    `/home/*` can cause trouble on macOS so we now maintain separate
+    globs per platform.
+
 2.3.0-dev.3 | 2022-07-12 10:57:09 +0200
 
   * By default, listen on 0.0.0.0 for WebSocket. Zeek's default is 127.0.0.1.
