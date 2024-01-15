@@ -6,13 +6,12 @@ export {
 	    "/etc/ssh/sshd_config.d/*");
 
 	## Paths to find `authorized_keys` files in.
-	option key_paths_to_watch: table[string] of set[string] = {
-		["linux"] = set("/home/*/.ssh/authorized_keys"),
-		["darwin"] = set("/Users/*/.ssh/authorized_keys")
-	};
+	option key_paths_to_watch: table[string] of set[string] = { [ "linux" ] = set(
+	    "/home/*/.ssh/authorized_keys"), [ "darwin" ] = set(
+	    "/Users/*/.ssh/authorized_keys") };
 
 	## Query frequency.
-	option query_interval = 30 secs;
+	option query_interval = 30secs;
 
 	## Subscription type
 	option subscription = ZeekAgent::Differences;
@@ -95,19 +94,20 @@ event zeek_init()
 		{
 		local field_name_map_configs = ZeekAgent::log_column_map(ColumnsConfigs,
 		    "columns.");
-		Log::create_stream(LOG_CONFIGS, [$columns=InfoConfigs,
-		    $policy=log_policy_configs]);
+		Log::create_stream(LOG_CONFIGS, [ $columns=InfoConfigs,
+		    $policy=log_policy_configs ]);
 		Log::remove_default_filter(LOG_CONFIGS);
-		Log::add_filter(LOG_CONFIGS, [$name="default", $path="zeek-agent-ssh-configs",
-		    $field_name_map=field_name_map_configs]);
+		Log::add_filter(LOG_CONFIGS, [ $name="default",
+		    $path="zeek-agent-ssh-configs",
+		    $field_name_map=field_name_map_configs ]);
 
 		for ( p in config_paths_to_watch )
 			{
 			local stmt_configs = fmt("SELECT * FROM files_columns(\"%s\", \"$1:text,$2:text\")",
 			    p);
-			ZeekAgent::query([$sql_stmt=stmt_configs, $event_=query_result_configs,
+			ZeekAgent::query([ $sql_stmt=stmt_configs, $event_=query_result_configs,
 			    $schedule_=query_interval,
-			    $subscription=subscription]);
+			    $subscription=subscription ]);
 			}
 		}
 
@@ -115,21 +115,21 @@ event zeek_init()
 		{
 		local field_name_map_keys = ZeekAgent::log_column_map(ColumnsKeys,
 		    "columns.");
-		Log::create_stream(LOG_KEYS, [$columns=InfoKeys, $policy=log_policy_keys]);
+		Log::create_stream(LOG_KEYS, [ $columns=InfoKeys, $policy=log_policy_keys ]);
 		Log::remove_default_filter(LOG_KEYS);
-		Log::add_filter(LOG_KEYS, [$name="default",
+		Log::add_filter(LOG_KEYS, [ $name="default",
 		    $path="zeek-agent-ssh-authorized-keys",
-		    $field_name_map=field_name_map_keys]);
-
+		    $field_name_map=field_name_map_keys ]);
 
 		for ( platform in key_paths_to_watch )
 			{
 			for ( path in key_paths_to_watch[platform] )
 				{
 				local stmt_keys = fmt("SELECT * FROM files_lines(\"%s\")", path);
-				ZeekAgent::query([$sql_stmt=stmt_keys, $event_=query_result_keys,
+				ZeekAgent::query([ $sql_stmt=stmt_keys, $event_=query_result_keys,
 				    $schedule_=query_interval,
-				    $subscription=subscription], ZeekAgent::Group, platform);
+				    $subscription=subscription ],
+				    ZeekAgent::Group, platform);
 				}
 			}
 		}

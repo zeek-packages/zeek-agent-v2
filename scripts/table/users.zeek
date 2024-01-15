@@ -2,7 +2,7 @@ module ZeekAgent_Users;
 
 export {
 	## Query frequency.
-	option query_interval = 30 secs;
+	option query_interval = 30secs;
 
 	## Subscription type
 	option subscription = ZeekAgent::Differences;
@@ -49,11 +49,11 @@ event ZeekAgent_Users::query_result(ctx: ZeekAgent::Context, columns: Columns)
 event zeek_init()
 	{
 	local field_name_map = ZeekAgent::log_column_map(Columns, "columns.");
-	Log::create_stream(LOG, [$columns=Info, $policy=log_policy]);
+	Log::create_stream(LOG, [ $columns=Info, $policy=log_policy ]);
 	Log::remove_default_filter(LOG);
-	Log::add_filter(LOG, [$name="default", $path="zeek-agent-users",
-	    $field_name_map=field_name_map]);
+	Log::add_filter(LOG, [ $name="default", $path="zeek-agent-users",
+	    $field_name_map=field_name_map ]);
 
-	ZeekAgent::query([$sql_stmt="SELECT * FROM users", $event_=query_result,
-	    $schedule_=query_interval, $subscription=subscription]);
+	ZeekAgent::query([ $sql_stmt="SELECT * FROM users", $event_=query_result,
+	    $schedule_=query_interval, $subscription=subscription ]);
 	}

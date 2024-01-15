@@ -1,7 +1,12 @@
-#! /bin/sh
+#! /usr/bin/env bash
 
-type -P zeek-script >/dev/null 2>&1 || exit 0
+type zeek-script >/dev/null 2>&1 || exit 0
 
-for i in $@; do
-    zeek-script format ${i} >${i}.tmp && mv -f ${i}.tmp ${i}
+rc=0
+
+for i in "$@"; do
+    zeek-script format -ir "${i}" 2>&1 | grep -v '0 errors'
+    test "${PIPESTATUS[0]}" -ne 0 && rc=1
 done
+
+exit ${rc}
