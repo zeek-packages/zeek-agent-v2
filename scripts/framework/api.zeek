@@ -23,7 +23,6 @@ export {
 		kernel_version: string &optional;
 		kernel_arch: string &optional;
 		agent_version: count &optional;
-		broker: string &optional;
 		uptime: interval &optional;
 		tables: set[string] &optional;
 	};
