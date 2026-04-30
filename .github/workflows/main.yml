@@ -2,33 +2,34 @@ name: CI pipeline
 
 on: push
 
+env:
+  ZEEK_PACKAGE: zeek-rc
+
 jobs:
-  test_ubuntu_22:
-    runs-on: ubuntu-22.04
-
-    strategy:
-      matrix:
-        zeek: [{version: 6.0.2-0, tag: -lts}]
-
-    env:
-      ZEEK_VERSION: ${{ matrix.zeek.version }}
-      ZEEK_TAG: ${{ matrix.zeek.tag }}
+  test_ubuntu_24:
+    runs-on: ubuntu-24.04
 
     steps:
       - name: Prepare
         run: |
           export DEBIAN_FRONTEND=noninteractive
-          sudo apt-get install -y curl ca-certificates
+          sudo apt-get update
+          sudo apt-get install -y ninja-build ccache curl ca-certificates clang gpg
           sudo pip3 install btest zkg pre-commit
+
+          # for bpftool
+          sudo apt-get install llvm libelf-dev gcc-multilib
 
       - name: Install Zeek
         run: |
-          (cd /tmp && curl -L -O https://download.zeek.org/binary-packages/xUbuntu_22.04/amd64/zeek${ZEEK_TAG}-core_${ZEEK_VERSION}_amd64.deb)
-          sudo apt install -y /tmp/zeek${ZEEK_TAG}-core_${ZEEK_VERSION}_amd64.deb
-          echo "/opt/zeek/bin:$PATH" >> $GITHUB_PATH
+          echo 'deb http://download.opensuse.org/repositories/security:/zeek/xUbuntu_24.04/ /' | sudo tee /etc/apt/sources.list.d/security:zeek.list
+          curl -fsSL https://download.opensuse.org/repositories/security:zeek/xUbuntu_24.04/Release.key | gpg --dearmor | sudo tee /etc/apt/trusted.gpg.d/security_zeek.gpg > /dev/null
+          sudo apt update
+          sudo apt install -y ${ZEEK_PACKAGE}
+          echo "/opt/zeek-rc/bin:/opt/zeek/bin:$PATH" >> $GITHUB_PATH
 
       - name: Checkout repository
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
         with:
           submodules: recursive
 
@@ -40,7 +41,7 @@ jobs:
         run: |
           pre-commit run -a --show-diff-on-failure
 
-      - uses: actions/upload-artifact@v2
+      - uses: actions/upload-artifact@v4
         if: failure()
         with:
           name: Test output
@@ -49,12 +50,12 @@ jobs:
             zeek-agent/tests/.tmp
 
   publish_release:
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     if: startsWith(github.ref, 'refs/tags/v')
-    needs: [test_ubuntu_22]
+    needs: [test_ubuntu_24]
     steps:
       - name: Checkout code
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
         with:
           submodules: recursive
 

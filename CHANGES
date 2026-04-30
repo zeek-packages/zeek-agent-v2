@@ -1,3 +1,10 @@
+2.4 | 2026-04-30 14:10:49 +0200
+
+  * Update for Zeek 8.2 and Zeek-Agent 2.4.
+
+    This removes support for older versions of Zeek and Zeek Agent. These
+    versions are a hard requirement now (once released).
+
 2.3.0-dev.10 | 2024-01-15 10:56:14 +0100
 
   * Various maintenance:

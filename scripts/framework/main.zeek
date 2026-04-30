@@ -3,6 +3,8 @@
 ##! This framework provides the API for installing queries with a set of
 ##! agents, and receiving their results.
 
+@load frameworks/cluster/websocket/server
+
 @load ./types
 @load ./api
 
@@ -86,31 +88,10 @@ export {
 
 	## Expiration interval for an agent's state after not hearing from it
 	## anymore. (Note that this should be longer than the agent's hello interval.)
-	option agent_timeout = 10mins;
+	option agent_timeout = 10 mins;
 
 	## Interval to broadcast ``hello`` events to all connected agents.
-	option hello_interval = 60secs;
-
-@if ( Version::number < 50000 )
-	## If non-zero and we are on Zeek < 5.0, listen on this port for
-	## incoming Broker connections.
-	##
-	## We use our own port for incoming connections here because
-	## ZeekControl changes the default Broker port based on node type, but
-	## we need a well-known port for the agents to connect to.
-	##
-	## If we are on Zeek >= 5.0, we instead activate its WebSocket support
-	## on the default port.
-	option listen_port = 9998/tcp;
-
-	## Default address on which to listen; empty for any interface, which
-	## is the default.
-	option listen_address = Broker::default_listen_address;
-
-	## Default interval to retry listening on a port if it's currently in
-	## use already.
-	option listen_retry = Broker::default_listen_retry;
-@endif
+	option hello_interval = 60 secs;
 }
 
 # Unique ID for the current Zeek process.
@@ -155,7 +136,7 @@ function log_update(agent_id: string, type_: string)
 	# Callers guarantee that the ID is in the table.
 	local agent = agents[agent_id];
 
-	local log: Info = [ $ts=network_time(), $type_=type_, $hid=agent_id ];
+	local log: Info = [$ts=network_time(), $type_=type_, $hid=agent_id];
 
 	local hello = agent$hello;
 
@@ -183,7 +164,7 @@ function log_update(agent_id: string, type_: string)
 function agent_expired(t: table[string] of Agent, agent_id: string): interval
 	{
 	log_update(agent_id, "offline");
-	return 0secs;
+	return 0 secs;
 	}
 
 function make_topic(qstate: QueryState, agent_id: string): string
@@ -210,35 +191,35 @@ function send_query_to_agent(query_id: string, agent_id: string)
 	{
 	local agent = agents[agent_id];
 	local qstate = queries[query_id];
-	local ev = Broker::make_event(ZeekAgentAPI::install_query_v1, zeek_instance,
+	local ev = Cluster::make_event(ZeekAgentAPI::install_query_v1, zeek_instance,
 	    qstate$query_id, qstate$query);
-	Broker::publish(make_topic(qstate, agent_id), ev);
+	Cluster::publish(make_topic(qstate, agent_id), ev);
 	}
 
 function send_query_to_all_agents(query_id: string)
 	{
 	local qstate = queries[query_id];
-	local ev = Broker::make_event(ZeekAgentAPI::install_query_v1, zeek_instance,
+	local ev = Cluster::make_event(ZeekAgentAPI::install_query_v1, zeek_instance,
 	    qstate$query_id, qstate$query);
-	Broker::publish(make_topic(qstate, ""), ev);
+	Cluster::publish(make_topic(qstate, ""), ev);
 	}
 
 function send_hello_to_agent(agent_id: string)
 	{
-	local hello: ZeekAgentAPI::ZeekHelloV1 = [ $version_string=zeek_version(),
-	    $version_number=Version::number, $package_version=package_version ];
-	local ev = Broker::make_event(ZeekAgentAPI::zeek_hello_v1, zeek_instance,
+	local hello: ZeekAgentAPI::ZeekHelloV1 = [$version_string=zeek_version(),
+	    $version_number=Version::number, $package_version=package_version];
+	local ev = Cluster::make_event(ZeekAgentAPI::zeek_hello_v1, zeek_instance,
 	    hello);
-	Broker::publish(fmt("/zeek-agent/query/host/%s", agent_id), ev);
+	Cluster::publish(fmt("/zeek-agent/query/host/%s", agent_id), ev);
 	}
 
 function send_hello_to_all_agents()
 	{
-	local hello: ZeekAgentAPI::ZeekHelloV1 = [ $version_string=zeek_version(),
-	    $version_number=Version::number, $package_version=package_version ];
-	local ev = Broker::make_event(ZeekAgentAPI::zeek_hello_v1, zeek_instance,
+	local hello: ZeekAgentAPI::ZeekHelloV1 = [$version_string=zeek_version(),
+	    $version_number=Version::number, $package_version=package_version];
+	local ev = Cluster::make_event(ZeekAgentAPI::zeek_hello_v1, zeek_instance,
 	    hello);
-	Broker::publish("/zeek-agent/query/group/all", ev);
+	Cluster::publish("/zeek-agent/query/group/all", ev);
 	}
 
 function send_all_queries_to_agent(agent_id: string)
@@ -250,9 +231,9 @@ function send_all_queries_to_agent(agent_id: string)
 function send_cancel_to_all_agents(query_id: string)
 	{
 	local qstate = queries[query_id];
-	local ev = Broker::make_event(ZeekAgentAPI::cancel_query_v1, zeek_instance,
+	local ev = Cluster::make_event(ZeekAgentAPI::cancel_query_v1, zeek_instance,
 	    query_id);
-	Broker::publish(make_topic(qstate, ""), ev);
+	Cluster::publish(make_topic(qstate, ""), ev);
 	}
 
 ### Public functions
@@ -265,8 +246,8 @@ function cancel(query_id: string)
 function query(query: Query, scope: Scope, target: string): string
 	{
 	local query_id = unique_id("za_");
-	queries[query_id] = [ $query_id=query_id, $scope=scope, $target=target,
-	    $query=query ];
+	queries[query_id] = [$query_id=query_id, $scope=scope, $target=target,
+	    $query=query];
 
 	send_query_to_all_agents(query_id);
 	return query_id;
@@ -347,30 +328,20 @@ event send_zeek_hello()
 event zeek_init() &priority=100
 	{
 	zeek_instance = unique_id("zeek_");
-	Log::create_stream(LOG, [ $columns=Info, $path="zeek-agent", $policy=log_policy ]);
+	Log::create_stream(LOG, [$columns=Info, $path="zeek-agent",
+	    $policy=log_policy]);
 
 	if ( file_size(package_version_file) > 0 )
-		Input::add_event([ $source=package_version_file, $reader=Input::READER_RAW,
+		Input::add_event([$source=package_version_file, $reader=Input::READER_RAW,
 		    $mode=Input::MANUAL, $name="package_version",
 		    $fields=PackageVersionLine, $ev=package_version_line,
-		    $want_record=F ]);
+		    $want_record=F]);
 	}
 
 event zeek_init() &priority=-10
 	{
-@if ( Version::number >= 50000 )
-	if ( Broker::default_listen_address_websocket != "" )
-		Broker::listen_websocket();
-	else
-		# Default is 127.0.0.1, which isn't very helpful for us.
-		Broker::listen_websocket("0.0.0.0");
-@else
-	if ( listen_port != 0/tcp )
-		Broker::listen(listen_address, listen_port, listen_retry);
-@endif
-
-	Broker::subscribe("/zeek-agent/response/all");
-	Broker::subscribe(fmt("/zeek-agent/response/%s/", zeek_instance));
+	Cluster::subscribe("/zeek-agent/response/all");
+	Cluster::subscribe(fmt("/zeek-agent/response/%s/", zeek_instance));
 
 	schedule hello_interval { send_zeek_hello() };
 	}
@@ -383,8 +354,8 @@ event zeek_done()
 	for ( query_id in queries )
 		send_cancel_to_all_agents(query_id);
 
-	local ev = Broker::make_event(ZeekAgentAPI::zeek_shutdown_v1, zeek_instance);
-	Broker::publish("/zeek-agent/query/group/all", ev);
+	local ev = Cluster::make_event(ZeekAgentAPI::zeek_shutdown_v1, zeek_instance);
+	Cluster::publish("/zeek-agent/query/group/all", ev);
 	}
 
 event ZeekAgentAPI::agent_hello_v1(ctx: ZeekAgent::Context,
@@ -414,8 +385,8 @@ event ZeekAgentAPI::agent_hello_v1(ctx: ZeekAgent::Context,
 		}
 	else
 		{
-		agents[agent_id] = [ $last_seen=network_time(), $hello_id=ctx$query_id,
-		    $hello=columns ];
+		agents[agent_id] = [$last_seen=network_time(), $hello_id=ctx$query_id,
+		    $hello=columns];
 		log_update(agent_id, "join");
 		send_hello_to_agent(agent_id);
 		send_all_queries_to_agent(agent_id);
